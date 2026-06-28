@@ -96,7 +96,6 @@
     shake: 0,
     player: "",
     leaders: /** @type {{name:string, score:number, at:number}[]} */ ([]),
-    serverOnline: /** @type {boolean|null} */ (null), // null = unknown
   };
 
   /** @typedef {{x:number,y:number,vx:number,vy:number,life:number,maxLife:number,size:number}} Particle */
@@ -134,10 +133,9 @@
     high()   { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.09), i * 90)); },
   };
 
-  // -------------------- Storage (server-first, localStorage fallback) --------------------
-  // The authoritative leaderboard lives in scores.json on the Node server
-  // (/api/scores). We mirror it to localStorage so the game still works if the
-  // server is offline, then resync as soon as it's back.
+  // -------------------- Storage (localStorage only) --------------------
+  // The leaderboard and player name are persisted in this browser's
+  // localStorage. Clearing site data wipes them.
 
   function loadPlayer() {
     try { return localStorage.getItem(LS_KEYS.name) || ""; }
@@ -161,50 +159,6 @@
   function saveLeadersLocal(list) {
     try { localStorage.setItem(LS_KEYS.leaderboard, JSON.stringify(list.slice(0, MAX_LEADERS))); }
     catch (_) {}
-  }
-
-  async function fetchLeadersFromServer() {
-    try {
-      const res = await fetch("/api/scores", { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Bad payload");
-      state.serverOnline = true;
-      return data.slice(0, MAX_LEADERS);
-    } catch (_) {
-      state.serverOnline = false;
-      return null;
-    }
-  }
-
-  async function postScoreToServer(name, score) {
-    try {
-      const res = await fetch("/api/scores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, score }),
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Bad payload");
-      state.serverOnline = true;
-      return data.slice(0, MAX_LEADERS);
-    } catch (_) {
-      state.serverOnline = false;
-      return null;
-    }
-  }
-
-  async function clearLeadersOnServer() {
-    try {
-      const res = await fetch("/api/scores", { method: "DELETE" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      state.serverOnline = true;
-      return true;
-    } catch (_) {
-      state.serverOnline = false;
-      return false;
-    }
   }
 
   function setLeaders(list) {
@@ -667,18 +621,11 @@
   }
 
   // -------------------- Leaderboard --------------------
-  // Optimistically merge the new score into the local cache so the UI updates
-  // instantly, then POST to the server. When the server responds with the
-  // authoritative top-3, we replace the cache with that.
   function submitToLeaderboard(name, score) {
     if (!name || score <= 0) return;
     const merged = state.leaders.concat([{ name, score, at: Date.now() }]);
     merged.sort((a, b) => b.score - a.score || a.at - b.at);
     setLeaders(merged);
-
-    postScoreToServer(name, score).then((serverList) => {
-      if (serverList) setLeaders(serverList);
-    });
   }
 
   function renderLeaderboard() {
@@ -793,7 +740,6 @@
   els.resetScoresBtn.addEventListener("click", () => {
     if (confirm("Clear the Top 3 leaderboard?")) {
       setLeaders([]);
-      clearLeadersOnServer();
     }
   });
 
@@ -830,15 +776,9 @@
     fitCanvas();
     resetGame();
 
-    // Show the locally cached leaderboard immediately so the panel isn't empty,
-    // then refresh from the server (which is authoritative) when it responds.
     state.leaders = loadLeadersLocal();
     renderLeaderboard();
     updateHud();
-
-    fetchLeadersFromServer().then((serverList) => {
-      if (serverList) setLeaders(serverList);
-    });
 
     showOverlay("start");
 
