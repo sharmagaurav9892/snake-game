@@ -403,17 +403,176 @@ canvas {
 .modal__cancel { margin-top: 8px; }
 .modal__cancel.hidden { display: none; }
 
-/* ---------- Responsive ---------- */
+/* ---------- Touch controls — base styles (always defined, only shown on .is-touch) ---------- */
+.touch-controls { display: none; }
+
+.touch-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.06s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.touch-btn:active {
+  transform: scale(0.94);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.touch-btn--pause {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 24px;
+  background: var(--accent);
+  color: #052218;
+  border-color: transparent;
+}
+.touch-btn--pause:active {
+  background: var(--accent-strong);
+  color: #052218;
+  border-color: transparent;
+  transform: scale(0.94);
+}
+
+.touch-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 56px);
+  gap: 6px;
+}
+.touch-btn--up    { grid-column: 2; grid-row: 1; }
+.touch-btn--left  { grid-column: 1; grid-row: 2; }
+.touch-btn--right { grid-column: 3; grid-row: 2; }
+.touch-btn--down  { grid-column: 2; grid-row: 3; }
+
+/* ---------- Responsive (desktop only) ---------- */
 @media (max-width: 900px) {
-  .stage { grid-template-columns: 1fr; }
-  .sidebar { flex-direction: row; }
-  .sidebar > * { flex: 1; }
-  canvas { width: min(92vw, 70vh); }
+  html:not(.is-touch) .stage { grid-template-columns: 1fr; }
+  html:not(.is-touch) .sidebar { flex-direction: row; }
+  html:not(.is-touch) .sidebar > * { flex: 1; }
+  html:not(.is-touch) canvas { width: min(92vw, 70vh); }
 }
 @media (max-width: 600px) {
-  .app { padding: 14px; }
-  .hud { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stat { padding: 10px 12px; }
-  .stat__value { font-size: 18px; }
-  .sidebar { flex-direction: column; }
+  html:not(.is-touch) .app { padding: 14px; }
+  html:not(.is-touch) .hud { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  html:not(.is-touch) .stat { padding: 10px 12px; }
+  html:not(.is-touch) .stat__value { font-size: 18px; }
+  html:not(.is-touch) .sidebar { flex-direction: column; }
+}
+
+/* =====================================================================
+ * Touch device layout (phones / tablets / iPads / Android, any size)
+ * Driven by the .is-touch class that JS sets on <html>.
+ * ===================================================================== */
+html.is-touch,
+html.is-touch body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+html.is-touch .app {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  grid-template-rows: auto auto auto auto;
+  gap: 12px;
+}
+
+html.is-touch .topbar { flex-wrap: wrap; gap: 8px; }
+html.is-touch .brand h1 { font-size: 16px; }
+html.is-touch .player { padding: 4px 4px 4px 10px; }
+html.is-touch .player__name { max-width: 90px; font-size: 13px; }
+html.is-touch .player__change { padding: 5px 10px; font-size: 11px; }
+
+html.is-touch .hud { gap: 8px; }
+html.is-touch .stat { padding: 8px 12px; }
+html.is-touch .stat__label { font-size: 11px; }
+html.is-touch .stat__value { font-size: 18px; }
+
+html.is-touch .stage {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+html.is-touch .canvas-wrap {
+  padding: 8px;
+  border-radius: 10px;
+}
+
+/*
+ * Canvas sizing on touch: square, fits the viewport width AND leaves
+ * roughly half the screen for HUD, controls, and the leaderboard so
+ * the D-pad is always visible without scrolling.
+ */
+html.is-touch canvas {
+  width: min(94vw, 52vh, 480px);
+  width: min(94vw, 52dvh, 480px);
+}
+
+/* Show the on-screen controls */
+html.is-touch .touch-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 4px 0;
+}
+
+/* Keyboard-shortcut card is irrelevant on touch */
+html.is-touch .controls { display: none; }
+
+/* Compact, full-width sidebar (just the leaderboard) below the controls */
+html.is-touch .sidebar { flex-direction: column; gap: 10px; }
+html.is-touch .leaderboard { padding: 12px 14px; }
+html.is-touch .leaderboard__list li { padding: 8px 10px; }
+
+/* Smaller phones (≤380px wide) — shrink the D-pad and pause button a bit */
+@media (max-width: 380px) {
+  html.is-touch .touch-dpad {
+    grid-template-columns: repeat(3, 48px);
+    grid-template-rows: repeat(3, 48px);
+    gap: 5px;
+  }
+  html.is-touch .touch-btn { font-size: 19px; }
+  html.is-touch .touch-btn--pause { width: 56px; height: 56px; font-size: 22px; }
+  html.is-touch .touch-controls { gap: 10px; }
+  html.is-touch canvas {
+    width: min(94vw, 48vh, 480px);
+    width: min(94vw, 48dvh, 480px);
+  }
+}
+
+/* Very short screens (landscape phones) — let the canvas use horizontal space */
+@media (max-height: 520px) and (orientation: landscape) {
+  html.is-touch .app { padding: 8px; gap: 8px; }
+  html.is-touch .stage {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  html.is-touch .touch-controls {
+    flex-direction: column-reverse;
+    grid-column: 2;
+    padding: 0;
+  }
+  html.is-touch canvas {
+    width: min(70vw, 88vh);
+    width: min(70vw, 88dvh);
+  }
+  html.is-touch .sidebar { display: none; }
 }

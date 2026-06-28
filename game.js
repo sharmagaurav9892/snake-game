@@ -71,7 +71,17 @@
     nameForm:  document.getElementById("nameForm"),
     nameInput: document.getElementById("nameInput"),
     nameCancelBtn: document.getElementById("nameCancelBtn"),
+
+    touchPause: document.getElementById("touchPause"),
+    touchUp:    document.getElementById("touchUp"),
+    touchDown:  document.getElementById("touchDown"),
+    touchLeft:  document.getElementById("touchLeft"),
+    touchRight: document.getElementById("touchRight"),
   };
+
+  // ▶ when idle / paused / over, ❚❚ when playing
+  const PLAY_ICON  = "\u25B6";
+  const PAUSE_ICON = "\u275A\u275A";
 
   // -------------------- State --------------------
   /** @typedef {{x:number, y:number}} Vec */
@@ -195,6 +205,7 @@
     state.lastTick = performance.now();
     hideAllOverlays();
     sfx.start();
+    updateTouchPauseIcon();
   }
 
   function pauseGame() {
@@ -202,6 +213,7 @@
     state.status = "paused";
     showOverlay("paused");
     sfx.pause();
+    updateTouchPauseIcon();
   }
 
   function resumeGame() {
@@ -210,12 +222,14 @@
     state.lastTick = performance.now();
     hideOverlay("paused");
     sfx.resume();
+    updateTouchPauseIcon();
   }
 
   function endGame() {
     state.status = "over";
     state.shake = 320;
     sfx.die();
+    updateTouchPauseIcon();
 
     const topBefore = getTopScore();
     submitToLeaderboard(state.player, state.score);
@@ -620,6 +634,42 @@
     hideOverlay("start"); hideOverlay("paused"); hideOverlay("over");
   }
 
+  function updateTouchPauseIcon() {
+    if (!els.touchPause) return;
+    const playing = state.status === "playing";
+    els.touchPause.textContent = playing ? PAUSE_ICON : PLAY_ICON;
+    els.touchPause.setAttribute("aria-label", playing ? "Pause" : "Play");
+  }
+
+  function bindTouchControls() {
+    const dirMap = [
+      [els.touchUp,    "Up"],
+      [els.touchDown,  "Down"],
+      [els.touchLeft,  "Left"],
+      [els.touchRight, "Right"],
+    ];
+    for (const [btn, dirName] of dirMap) {
+      if (!btn) continue;
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        ensureAudio();
+        queueDirection(dirName);
+        if (state.status === "idle" || state.status === "over") startGame();
+      });
+      // Suppress the synthesized click so audio/state aren't double-triggered.
+      btn.addEventListener("click", (e) => e.preventDefault());
+    }
+    if (els.touchPause) {
+      els.touchPause.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        ensureAudio();
+        togglePause();
+        updateTouchPauseIcon();
+      });
+      els.touchPause.addEventListener("click", (e) => e.preventDefault());
+    }
+  }
+
   // -------------------- Leaderboard --------------------
   function submitToLeaderboard(name, score) {
     if (!name || score <= 0) return;
@@ -694,6 +744,7 @@
       state.status = "playing";
       state.lastTick = performance.now();
       hideAllOverlays();
+      updateTouchPauseIcon();
     }
   }
 
@@ -770,6 +821,7 @@
   // -------------------- Init --------------------
   function init() {
     document.addEventListener("keydown", onKeyDown);
+    bindTouchControls();
 
     state.player = loadPlayer();
 
@@ -779,6 +831,7 @@
     state.leaders = loadLeadersLocal();
     renderLeaderboard();
     updateHud();
+    updateTouchPauseIcon();
 
     showOverlay("start");
 

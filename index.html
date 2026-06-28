@@ -2,8 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Snake</title>
+    <script>
+      (function () {
+        var hasTouch =
+          "ontouchstart" in window ||
+          (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+          (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0) ||
+          (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
+        if (hasTouch) document.documentElement.classList.add("is-touch");
+      })();
+    </script>
     <link rel="stylesheet" href="styles.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
@@ -90,6 +100,16 @@
             </ul>
           </div>
         </aside>
+      </section>
+
+      <section class="touch-controls" id="touchControls">
+        <button class="touch-btn touch-btn--pause" id="touchPause" aria-label="Play or pause">&#9654;</button>
+        <div class="touch-dpad" role="group" aria-label="Direction pad">
+          <button class="touch-btn touch-btn--up"    id="touchUp"    aria-label="Move up">&#9650;</button>
+          <button class="touch-btn touch-btn--left"  id="touchLeft"  aria-label="Move left">&#9664;</button>
+          <button class="touch-btn touch-btn--right" id="touchRight" aria-label="Move right">&#9654;</button>
+          <button class="touch-btn touch-btn--down"  id="touchDown"  aria-label="Move down">&#9660;</button>
+        </div>
       </section>
     </main>
 
