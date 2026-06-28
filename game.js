@@ -807,6 +807,35 @@
   // -------------------- DPI / resize --------------------
   function fitCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // [fit-board] Desktop: fit the board into the stage's available area so it
+    // never overflows and the footer stays visible. Touch keeps CSS sizing.
+    if (!document.documentElement.classList.contains("is-touch")) {
+      const _wrap = canvas.parentElement;
+      const _stage = _wrap.parentElement;
+      const _cs = getComputedStyle(_wrap);
+      const _gap = parseFloat(getComputedStyle(_stage).rowGap) || 0;
+      const _wr = _wrap.getBoundingClientRect();
+      let _budget = _stage.clientHeight;
+      for (const _sib of _stage.children) {
+        if (_sib === _wrap) continue;
+        const _r = _sib.getBoundingClientRect();
+        if (_r.top >= _wr.bottom - 2) _budget -= _r.height + _gap;
+      }
+      const _availW = _wrap.clientWidth
+        - parseFloat(_cs.paddingLeft) - parseFloat(_cs.paddingRight);
+      const _availH = _budget
+        - parseFloat(_cs.paddingTop) - parseFloat(_cs.paddingBottom)
+        - parseFloat(_cs.borderTopWidth) - parseFloat(_cs.borderBottomWidth);
+      if (_availW > 0 && _availH > 0) {
+        let _cw = _availW, _ch = _cw * (600 / 600);
+        if (_ch > _availH) { _ch = _availH; _cw = _ch * (600 / 600); }
+        canvas.style.width = Math.floor(_cw) + "px";
+        canvas.style.height = Math.floor(_ch) + "px";
+      }
+    } else {
+      canvas.style.width = "";
+      canvas.style.height = "";
+    }
     const rect = canvas.getBoundingClientRect();
     const target = Math.round(Math.min(rect.width, rect.height) * dpr);
     // Snap so each cell is whole pixels — keeps lines crisp
